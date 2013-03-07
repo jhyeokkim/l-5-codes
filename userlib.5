@@ -1,0 +1,179 @@
+###
+### userlib.5
+###
+
+"loading userlib.5:  " .
+
+#==========================================================================
+"Constant.." .
+
+#==========================================================================
+"Stack.." .
+[] '__Dip_A set
+
+: -rot  rot rot ;
+: 2dip  swap 'dip dip ;
+: 2drop  drop drop ;
+: 2over  3 pick 3 pick ;
+: 2swap  4 roll 4 roll ;
+: 3dip  swap '2dip dip ;
+: 3drop  3 ndrop ;
+: 3dup  2 pick 2 pick 2 pick ;  # : 3dup  3 "2 pick" times ;
+: 4drop  4 ndrop ;
+: __2dip  swap '_x set swap '_y set execute _y _x ;
+: __3dip  swap '_x set swap '_y set swap '_z set execute _z _y _x ;
+: __dip  swap '_ set execute _ ;
+: __dupd  'dup __dip ;
+: __bi  '__keep __dip execute ;
+: __bi*  '_ set __dip _ execute ;
+: __bi@  dup __bi* ;
+: __keep  over 'execute __dip ;
+: __tri  '_x set '_y set __keep _y __keep _x execute ;
+: __tri*  '_x set '_y set __2dip _y __dip _x execute ;
+: __tri@  dup dup __tri* ;
+: bi  'keep dip execute ;
+: bi*  'dip dip execute ;
+: bi@  dup bi* ;
+: bury  swap rot ;
+: dip #( x q -- x )
+    swap __Dip_A swap 1array append '__Dip_A set
+    execute __Dip_A pop nip ;
+: keep  over 'execute dip ;
+: nip  swap drop ;
+: over2  2 pick 2 pick ;        # 2over of Factor.
+: tri  : inner  'keep dip keep ; 'inner dip execute ;
+: tri*  : inner  '2dip dip dip ; 'inner dip execute ;
+: tri@  dup dup tri* ;
+: tuck  swap over ;
+
+#==========================================================================
+"Array.." .
+
+: 1array  1 compress ;
+: 2array  2 compress ;
+: 3append  'append bi@ ;
+: 3array  3 compress ;
+: 4array  4 compress ;
+: <a,b>  '1+ '1- bi* 1 <range> ;# (a,b)
+: <a,b|  '1+ dip 1 <range> ;    # (a,b]
+: <group> #( a -- 'a )
+    grade subscript dup 's dress distinct strip
+    length 1 2array reshape swap
+    'A set
+    : `filter(*)  A in A swap select ;
+    '`filter apply
+    ;
+: <range>  over iota swap * rot + tuck swap <= select ;
+: |0,b>  0 swap |a,b> ;         # [0,b)
+: |0,b|  0 swap |a,b| ;         # [0,b]
+: |1,b>  1 swap |a,b> ;         # [1,b)
+: |1,b|  1 swap |a,b| ;         # [1,b]
+: |a,b>  1- 1 <range> ;         # [a,b)
+: |a,b|  1 <range> ;            # [a,b]
+: at-pos  over nth ;
+: but-last  length 1- |0,b> subscript ;
+: cut  2dup head -rot tail ;    #( arr n -- before after )
+: cut*  2dup head* -rot tail* ;
+: empty?  length 0= ;
+: filter  over swap execute select ;
+: first  0 swap nth ;
+: flip  shape lensize 2 < if 1array then 1 transpose ;
+: fourth  3 swap nth ;
+: head  iota subscript ;                        # =take
+: head*  over lensize swap - head ;
+: last  -1 swap nth ;
+: lensize  length nip ;
+: nil?
+    : nil>number(*) length not if [-1] then ;
+    'nil>number apply ;
+: nth  '1array dip nths ;
+: nths  swap subscript expand drop ;
+: pop  -1 extract ;
+: pop*  -1 remove ;
+: prefix  1array swap append ;
+: rest  1 tail ;
+: second  1 swap nth ;
+: set-nth  swap cut rest rot prefix append ;
+: subarray  -rot |a,b> subscript ;
+: suffix  1array append ;
+: tail  over lensize over - |a,b| subscript ;   # =drop
+: tail*  over lensize tuck '- dip |a,b> subscript ;
+: take  0 extract ;
+: take*  0 remove ;
+: third  2 swap nth ;
+: unclip  dup 'rest 'first bi* ;
+: unclip-last  dup 'but-last 'last bi* ;
+
+#==========================================================================
+#"Hash.." .
+
+#==========================================================================
+#"Bit.." .
+
+#==========================================================================
+"Math.." .
+
+: /i  / int ;
+: 0=  0 == ;
+: 1+  1 + ;
+: 1-  1 - ;
+: cot tan 1 swap / ;
+: csc  sin 1 swap / ;
+: even?  odd? not ;
+: identity-matrix #( n -- a )
+    dup iota 'A set
+    : `each-in(*) A in ;
+    [1] swap append reverse A swap reshape '`each-in apply
+    ;
+: log2  log 2 log / int ;
+: mod  dup 0= if 2drop 0 else % then ;
+: odd?  1 & ;   # 2 %
+: product '* reduce ;
+: sec cos 1 swap / ;
+: sum '+ reduce ;
+: tan  sin swap cos / ;
+: tanh  2 * exp 1- dup 2 + / ;
+
+#==========================================================================
+"String.." .
+
+: 2string  2array "" join ;
+: >string  1array "" join ;
+: comb  "" split ;
+: concat  "" join ;
+: cr  "\n" . ;
+: flip-string  comb reverse concat ;
+: space " " . ;
+: strlen  comb lensize ;
+: substr  -rot over + |a,b> subscript concat ;
+: words  " " split ;
+
+#==========================================================================
+"etc.." .
+
+: */  depth compress product . ;
+: +/  depth compress sum . ;
+: .words  wlist . ;
+: __while
+    do  __dupd 'execute __2dip
+        rot if dup __2dip else break then
+    loop 2drop ;
+: bye  exit ;
+: ifte  rot if drop execute else nip execute then ;
+: see  explain ;
+: times #( n q -- ... )
+    swap iota '__Times_N set
+    do   dup 'execute dip __Times_N pop if drop else break then
+    loop 2drop ;
+: unless  swap if drop else execute then ;
+: until
+    do  dupd 'execute 2dip
+        rot if break else dup 2dip then
+    loop 2drop ;
+: when  swap if execute else drop then ;
+: while
+    do  dupd 'execute 2dip
+        rot if dup 2dip else break then
+    loop 2drop ;    : _break  0 reshape ;
+
+"\n" .
